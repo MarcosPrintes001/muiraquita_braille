@@ -10,6 +10,7 @@ dependencies:
 
   flutter:
     sdk: flutter
+    
   image_picker: ^1.0.4
   opencv_4: ^1.0.0
 

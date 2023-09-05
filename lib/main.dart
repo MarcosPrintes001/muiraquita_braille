@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:muiraquita_braille/pages/camera.dart';
+import 'package:muiraquita_braille/home.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(const MyApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Camera(),
+      home: HomePage(),
     );
   }
 }
