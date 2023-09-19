@@ -1,129 +1,123 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:opencv_4/factory/pathfrom.dart';
 import 'package:opencv_4/opencv_4.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+// ignore_for_file: depend_on_referenced_packages
+import 'package:path_provider/path_provider.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class ImageProcessingScreen extends StatefulWidget {
+  const ImageProcessingScreen({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  // ignore: library_private_types_in_public_api
+  _ImageProcessingScreenState createState() => _ImageProcessingScreenState();
 }
 
-class _HomePageState extends State<HomePage> {
-  File? _image;
-  Uint8List? _byte;
-
-  Future getImageFromGallery() async {
-    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-    setState(() {
-      _image = image != null ? File(image.path) : null;
-    });
-  }
-
-  Future takePicture() async {
-    final image = await ImagePicker().pickImage(source: ImageSource.camera);
-    setState(() {
-      _image = image != null ? File(image.path) : null;
-    });
-  }
-
-  Future applyFilter() async {
-    var res = await Cv2.cvtColor(
-      pathFrom: CVPathFrom.GALLERY_CAMERA,
-      pathString: _image!.path,
-      outputType: Cv2.COLOR_BGR2GRAY,
-    );
-
-    setState(() {
-      _byte;
-    });
-  }
+class _ImageProcessingScreenState extends State<ImageProcessingScreen> {
+  File? _selectedImage;
+  File? _processedImage;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: const Text("MuiraKitã Braille"),
+        title: const Text('Processamento de Imagem'),
       ),
       body: Column(
-        children: [
-          Container(
-            color: Colors.green,
-            width: double.maxFinite,
-            height: 80,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextButton.icon(
-                  onPressed: getImageFromGallery,
-                  icon: const Icon(
-                    Icons.add_a_photo,
-                    size: 30,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    "Adicionar",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.cancel,
-                    size: 30,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    "Cancelar",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Expanded(
+            child: _selectedImage != null
+                ? Center(
+                    child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Image(
+                          image: FileImage(_selectedImage!),
+                        )),
+                  )
+                : const Icon(Icons.image_not_supported_sharp),
           ),
-
-          Expanded(
-              child: Container(
-                  color: Colors.red,
-                  child: _image != null
-                      ? Center(
-                          child: Padding(
-                              padding: EdgeInsets.all(10.0),
-                              child: Image(
-                                image: FileImage(_image!),
-                              )),
-                        )
-                      : null)),
-          // Expanded(
-          //   child: Container(
-          //     color: Colors.red,
-          //     child: _image != null
-          //         ? Center(
-          //             child: Padding(
-          //                 padding: const EdgeInsets.all(10.0),
-          //                 child: Image(image: FileImage(_image!)
-          //           )
-          //         : null,
-          //   ),
-          // ),),
-
-          Expanded(
-            child: Container(
-              color: Colors.blue,
-              width: double.maxFinite,
-              height: 100,
-              child: ListView(
-                children: [],
+          const SizedBox(height: 20.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              TextButton.icon(
+                icon: const Icon(Icons.photo_camera),
+                onPressed: () {
+                  _getImageFromCamera();
+                },
+                label: const Text('Tirar Foto'),
               ),
-            ),
+              TextButton.icon(
+                icon: const Icon(Icons.image_search_sharp),
+                onPressed: () {
+                  _getImageFromGallery();
+                },
+                label: const Text('Galeria'),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.translate_sharp),
+                onPressed: () {
+                  _processImage();
+                },
+                label: const Text('Traduzir'),
+              ),
+            ],
           ),
+          const SizedBox(height: 20.0),
+          _processedImage != null ? Image.file(_processedImage!) : Container(),
         ],
       ),
     );
+  }
+
+  Future<void> _getImageFromCamera() async {
+    final pickedImage =
+        await ImagePicker().pickImage(source: ImageSource.camera);
+
+    setState(() {
+      _selectedImage = pickedImage != null ? File(pickedImage.path) : null;
+    });
+  }
+
+  Future<void> _getImageFromGallery() async {
+    final pickedImage =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    setState(() {
+      _selectedImage = pickedImage != null ? File(pickedImage.path) : null;
+    });
+  }
+
+  Future<void> _processImage() async {
+    if (_selectedImage == null) {
+      return;
+    }
+
+    try {
+      final imagePath = _selectedImage!.path;
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFilePath = '${tempDir.path}/processed_image.jpg';
+
+      //Tons de cinza
+      //grade
+      //outras operações
+      final processedImageBytes = await Cv2.cvtColor(
+        pathFrom: CVPathFrom.GALLERY_CAMERA,
+        pathString: imagePath,
+        outputType: Cv2.COLOR_BGR2GRAY,
+      );
+
+      if (processedImageBytes != null) {
+        await File(tempFilePath).writeAsBytes(processedImageBytes);
+        setState(() {
+          _selectedImage = File(tempFilePath);
+        });
+      }
+    } catch (e) {
+      print('Erro ao processar a imagem: $e');
+    }
   }
 }
